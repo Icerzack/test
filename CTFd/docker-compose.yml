@@ -1,0 +1,75 @@
+version: '2'
+
+services:
+  ctfd:
+    build: .
+    user: root
+    restart: always
+    container_name: ctfd
+    ports:
+      - "8000:8000"
+    environment:
+      - UPLOAD_FOLDER=/var/uploads
+      - DATABASE_URL=${DATABASE_URL}
+     # - DATABASE_URL=mysql+pymysql://max:secret@master.be624dab-0c39-4d1c-8465-00f55277f385.c.dbaas.selcloud.ru:3306/d
+     # - DATABASE_URL=mysql+pymysql://ctfd:ctfd@master.09ff738c-b309-461d-9e3a-029cb4f7655d.c.dbaas.selcloud.ru/ctfd
+     # - REDIS_URL=rediss://:Qazwsxedcrfvtgbyhnujmikolpqazwsx_0@master.43c62444-addd-4bed-ba3c-c5381601bed5.c.dbaas.selcloud.ru:6380/0?ssl_cert_reqs=required&ssl_ca_certs=./root.crt
+      - REDIS_URL=${REDIS_URL}
+      - WORKERS=1
+      - LOG_FOLDER=/var/log/CTFd
+      - ACCESS_LOG=-
+      - ERROR_LOG=-
+      - REVERSE_PROXY=true
+    volumes:
+      - .data/CTFd/logs:/var/log/CTFd
+      - .data/CTFd/uploads:/var/uploads
+      - .:/opt/CTFd:ro
+    depends_on:
+      - db
+    networks:
+      default:
+      internal:
+      main-app:
+
+#  nginx:
+ #   image: nginx:stable
+  #  restart: always
+   # volumes:
+   #   - ./conf/nginx/http.conf:/etc/nginx/nginx.conf
+   #   - ./certs/fullchain.pem:/certs/fullchain.pem:ro
+   #   - ./certs/privkey.pem:/certs/privkey.pem:ro
+   # ports:
+   #   - 80:80
+   #   - 443:443
+   # depends_on:
+   #   - ctfd
+
+  db:
+    image: mariadb:10.4.12
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=ctfd
+      - MYSQL_USER=ctfd
+      - MYSQL_PASSWORD=ctfd
+      - MYSQL_DATABASE=ctfd
+    volumes:
+      - .data/mysql:/var/lib/mysql
+    networks:
+        internal:
+    # This command is required to set important mariadb defaults
+    command: [mysqld, --character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci, --wait_timeout=28800, --log-warnings=0]
+
+  cache:
+    image: redis:4
+    restart: always
+    volumes:
+      - .data/redis:/data
+    networks:
+      internal:
+
+networks:
+    internal:
+      internal: true
+    main-app:
+      external: true
+      name: main-app
