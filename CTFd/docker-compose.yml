@@ -5,16 +5,12 @@ services:
     build: .
     user: root
     restart: always
-    container_name: ctfd
     ports:
       - "8000:8000"
     environment:
       - UPLOAD_FOLDER=/var/uploads
-      - DATABASE_URL=${DATABASE_URL}
-     # - DATABASE_URL=mysql+pymysql://max:secret@master.be624dab-0c39-4d1c-8465-00f55277f385.c.dbaas.selcloud.ru:3306/d
-     # - DATABASE_URL=mysql+pymysql://ctfd:ctfd@master.09ff738c-b309-461d-9e3a-029cb4f7655d.c.dbaas.selcloud.ru/ctfd
-     # - REDIS_URL=rediss://:Qazwsxedcrfvtgbyhnujmikolpqazwsx_0@master.43c62444-addd-4bed-ba3c-c5381601bed5.c.dbaas.selcloud.ru:6380/0?ssl_cert_reqs=required&ssl_ca_certs=./root.crt
-      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=mysql+pymysql://ctfd:ctfd@db/ctfd
+      - REDIS_URL=redis://cache:6379
       - WORKERS=1
       - LOG_FOLDER=/var/log/CTFd
       - ACCESS_LOG=-
@@ -27,22 +23,18 @@ services:
     depends_on:
       - db
     networks:
-      default:
-      internal:
-      main-app:
+        default:
+        internal:
 
-#  nginx:
- #   image: nginx:stable
-  #  restart: always
-   # volumes:
-   #   - ./conf/nginx/http.conf:/etc/nginx/nginx.conf
-   #   - ./certs/fullchain.pem:/certs/fullchain.pem:ro
-   #   - ./certs/privkey.pem:/certs/privkey.pem:ro
-   # ports:
-   #   - 80:80
-   #   - 443:443
-   # depends_on:
-   #   - ctfd
+  nginx:
+    image: nginx:stable
+    restart: always
+    volumes:
+      - ./conf/nginx/http.conf:/etc/nginx/nginx.conf
+    ports:
+      - 80:80
+    depends_on:
+      - ctfd
 
   db:
     image: mariadb:10.4.12
@@ -63,13 +55,11 @@ services:
     image: redis:4
     restart: always
     volumes:
-      - .data/redis:/data
+    - .data/redis:/data
     networks:
-      internal:
+        internal:
 
 networks:
+    default:
     internal:
-      internal: true
-    main-app:
-      external: true
-      name: main-app
+        internal: true
